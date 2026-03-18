@@ -314,6 +314,7 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
     });
     const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
     tubeMesh.renderOrder = 1;
+    tubeMesh.raycast = () => {}; // Don't intercept clicks
     groupRef.current.add(tubeMesh);
 
     // Outer glow tube - slightly larger, more transparent
@@ -326,6 +327,7 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
     });
     const glowMesh = new THREE.Mesh(glowGeo, glowMat);
     glowMesh.renderOrder = 0;
+    glowMesh.raycast = () => {}; // Don't intercept clicks
     groupRef.current.add(glowMesh);
 
     // Behind-Earth tube - no depth test, dim
@@ -339,6 +341,7 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
     });
     const backMesh = new THREE.Mesh(backGeo, backMat);
     backMesh.renderOrder = -1;
+    backMesh.raycast = () => {}; // Don't intercept clicks
     groupRef.current.add(backMesh);
 
     return () => {
