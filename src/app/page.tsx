@@ -105,7 +105,7 @@ export default function Home() {
 
       if (observerLat !== null && observerLng !== null) {
         const nearby = newPositions
-          .filter((p) => isVisibleFrom(p, observerLat, observerLng, 1500))
+          .filter((p) => isVisibleFrom(p, observerLat, observerLng, 800))
           .sort((a, b) => a.alt - b.alt);
         setNearbySatellites(nearby);
 
