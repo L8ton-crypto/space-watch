@@ -99,11 +99,24 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-  "Space Stations": "🛸",
+  "Space Stations": "🏠",
   Brightest: "🛰️",
   Active: "📡",
   Starlink: "⭐",
 };
+
+// Specific icons for well-known satellites
+function getSatIcon(name: string, category: string): string {
+  const upper = name.toUpperCase();
+  if (upper.includes("ISS")) return "🚀";
+  if (upper.includes("TIANGONG") || upper.includes("CSS")) return "🏗️";
+  if (upper.includes("HUBBLE") || upper.includes("HST")) return "🔭";
+  if (upper.includes("JWST") || upper.includes("JAMES WEBB")) return "🔭";
+  if (upper.includes("STARLINK")) return "📶";
+  if (upper.includes("GPS") || upper.includes("GALILEO") || upper.includes("BEIDOU")) return "🧭";
+  if (upper.includes("NOAA") || upper.includes("GOES") || upper.includes("METEO")) return "🌤️";
+  return CATEGORY_ICONS[category] || "🛰️";
+}
 
 // --- Satellite sprite with icon ---
 // Occlusion: hide satellites behind the globe by checking if position
@@ -205,8 +218,8 @@ function SatelliteMarker({
       {/* Icon label for stations or selected */}
       {(isStation || isSelected) && !occluded && (
         <Html distanceFactor={3} style={{ pointerEvents: "none" }}>
-          <div style={{ fontSize: isStation ? 14 : 10, textAlign: "center", marginTop: -20 }}>
-            {CATEGORY_ICONS[sat.category] || "🛰️"}
+          <div style={{ fontSize: isStation ? 16 : 12, textAlign: "center", marginTop: -22 }}>
+            {getSatIcon(sat.name, sat.category)}
           </div>
         </Html>
       )}
@@ -230,7 +243,7 @@ function SatelliteMarker({
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-              <span style={{ fontSize: 14 }}>{CATEGORY_ICONS[sat.category] || "🛰️"}</span>
+              <span style={{ fontSize: 14 }}>{getSatIcon(sat.name, sat.category)}</span>
               <span style={{ color, fontWeight: 700, fontSize: 13 }}>{sat.name}</span>
             </div>
             {sat.description && (

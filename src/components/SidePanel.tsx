@@ -12,11 +12,23 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-  "Space Stations": "🛸",
+  "Space Stations": "🏠",
   Brightest: "🛰️",
   Active: "📡",
   Starlink: "⭐",
 };
+
+function getSatIcon(name: string, category: string): string {
+  const upper = name.toUpperCase();
+  if (upper.includes("ISS")) return "🚀";
+  if (upper.includes("TIANGONG") || upper.includes("CSS")) return "🏗️";
+  if (upper.includes("HUBBLE") || upper.includes("HST")) return "🔭";
+  if (upper.includes("JWST") || upper.includes("JAMES WEBB")) return "🔭";
+  if (upper.includes("STARLINK")) return "📶";
+  if (upper.includes("GPS") || upper.includes("GALILEO") || upper.includes("BEIDOU")) return "🧭";
+  if (upper.includes("NOAA") || upper.includes("GOES") || upper.includes("METEO")) return "🌤️";
+  return CATEGORY_ICONS[category] || "🛰️";
+}
 
 function SatelliteCard({
   sat,
@@ -30,7 +42,7 @@ function SatelliteCard({
   onClick: () => void;
 }) {
   const color = CATEGORY_COLORS[sat.category] || "#4fc3f7";
-  const icon = CATEGORY_ICONS[sat.category] || "🛰️";
+  const icon = getSatIcon(sat.name, sat.category);
 
   return (
     <button
