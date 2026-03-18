@@ -589,6 +589,7 @@ export default function Globe({
       camera={{ position: [0, 0, 3], fov: 45 }}
       style={{ background: "#0a0a0f", zIndex: 1 }}
       gl={{ antialias: true, alpha: false }}
+      onPointerMissed={() => onSelect(null)}
     >
       <Scene
         satellites={satellites}
