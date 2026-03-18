@@ -222,7 +222,7 @@ function SatelliteMarker({
 
       {/* Icon label for stations or selected */}
       {(isStation || isSelected) && !occluded && (
-        <Html distanceFactor={3} style={{ pointerEvents: "none" }}>
+        <Html distanceFactor={3} zIndexRange={[1, 10]} style={{ pointerEvents: "none" }}>
           <div style={{ fontSize: isStation ? 16 : 12, textAlign: "center", marginTop: -22 }}>
             {getSatIcon(sat.name, sat.category)}
           </div>
@@ -231,7 +231,7 @@ function SatelliteMarker({
 
       {/* Info popup for selected */}
       {isSelected && !occluded && (
-        <Html distanceFactor={3} style={{ pointerEvents: "none" }}>
+        <Html distanceFactor={3} zIndexRange={[1, 10]} style={{ pointerEvents: "none" }}>
           <div
             style={{
               background: "rgba(10, 10, 15, 0.92)",
@@ -405,7 +405,7 @@ function ObserverMarker({ lat, lng }: { lat: number; lng: number }) {
         <meshBasicMaterial color="#ff9800" transparent opacity={0.4} side={THREE.DoubleSide} />
       </mesh>
       {!occluded && (
-        <Html distanceFactor={3} style={{ pointerEvents: "none" }}>
+        <Html distanceFactor={3} zIndexRange={[1, 10]} style={{ pointerEvents: "none" }}>
           <div
             style={{
               color: "#ff9800",
@@ -575,7 +575,7 @@ export default function Globe({
   return (
     <Canvas
       camera={{ position: [0, 0, 3], fov: 45 }}
-      style={{ background: "#0a0a0f" }}
+      style={{ background: "#0a0a0f", zIndex: 1 }}
       gl={{ antialias: true, alpha: false }}
     >
       <Scene
@@ -592,3 +592,4 @@ export default function Globe({
     </Canvas>
   );
 }
+
