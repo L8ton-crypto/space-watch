@@ -137,6 +137,7 @@ function SatelliteMarker({
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
+  const occludedRef = useRef(false);
   const [occluded, setOccluded] = useState(false);
   const color = CATEGORY_COLORS[sat.category] || "#4fc3f7";
   const isStation = sat.category === "Space Stations";
@@ -155,29 +156,33 @@ function SatelliteMarker({
       (glowRef.current.material as THREE.MeshBasicMaterial).opacity = opacity;
     }
 
-    // Occlusion check: is this satellite behind the Earth from camera's perspective?
+    // Occlusion check - only update React state when value changes
     const cam = state.camera.position;
     const satPos = new THREE.Vector3(...position);
     const camToSat = satPos.clone().sub(cam);
-    const camToOrigin = new THREE.Vector3().sub(cam);
 
-    // Ray from camera to satellite - check if it intersects Earth sphere (r=1)
     const rayDir = camToSat.clone().normalize();
-    const oc = cam.clone(); // origin to camera
-    const a = rayDir.dot(rayDir);
+    const oc = cam.clone();
     const b = 2 * oc.dot(rayDir);
-    const c = oc.dot(oc) - 1.0; // Earth radius = 1
-    const discriminant = b * b - 4 * a * c;
+    const c = oc.dot(oc) - 1.0;
+    const discriminant = b * b - 4 * c;
 
+    let isOccluded = false;
     if (discriminant > 0) {
-      const t1 = (-b - Math.sqrt(discriminant)) / (2 * a);
-      const t2 = (-b + Math.sqrt(discriminant)) / (2 * a);
+      const t1 = (-b - Math.sqrt(discriminant)) / 2;
       const tSat = camToSat.length();
-      // If Earth intersection is closer than satellite, it's occluded
-      const tMin = Math.min(t1, t2);
-      setOccluded(tMin > 0 && tMin < tSat);
-    } else {
-      setOccluded(false);
+      isOccluded = t1 > 0 && t1 < tSat;
+    }
+
+    // Only trigger re-render when occlusion state actually changes
+    if (isOccluded !== occludedRef.current) {
+      occludedRef.current = isOccluded;
+      setOccluded(isOccluded);
+    }
+
+    // Also directly set visibility on the group to avoid flicker
+    if (groupRef.current) {
+      groupRef.current.visible = !isOccluded;
     }
   });
 
@@ -350,6 +355,8 @@ function ObserverMarker({ lat, lng }: { lat: number; lng: number }) {
   const pos = latLngToVector3(lat, lng, 0);
   const meshRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const occludedRef = useRef(false);
   const [occluded, setOccluded] = useState(false);
 
   useFrame((state) => {
@@ -362,32 +369,33 @@ function ObserverMarker({ lat, lng }: { lat: number; lng: number }) {
       const scale = 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.2;
       ringRef.current.scale.setScalar(scale);
     }
-    // Occlusion: check if marker is on the far side
+
     const cam = state.camera.position;
     const markerPos = new THREE.Vector3(...pos);
-    const toMarker = markerPos.clone().sub(cam).normalize();
-    const toOrigin = new THREE.Vector3().sub(cam).normalize();
-    // Simple: if the dot product of camera-to-marker and camera-to-origin
-    // is high AND marker is further than Earth surface, it's behind
-    const camDist = cam.length();
-    const markerDist = markerPos.clone().sub(cam).length();
-    const originDist = cam.length();
-    // Use ray-sphere intersection
-    const rayDir = toMarker;
+    const toMarker = markerPos.clone().sub(cam);
+    const rayDir = toMarker.clone().normalize();
     const oc = cam.clone();
     const b = 2 * oc.dot(rayDir);
     const c = oc.dot(oc) - 1.0;
     const disc = b * b - 4 * c;
+
+    let isOccluded = false;
     if (disc > 0) {
       const t1 = (-b - Math.sqrt(disc)) / 2;
-      setOccluded(t1 > 0 && t1 < markerDist);
-    } else {
-      setOccluded(false);
+      isOccluded = t1 > 0 && t1 < toMarker.length();
+    }
+
+    if (isOccluded !== occludedRef.current) {
+      occludedRef.current = isOccluded;
+      setOccluded(isOccluded);
+    }
+    if (groupRef.current) {
+      groupRef.current.visible = !isOccluded;
     }
   });
 
   return (
-    <group position={pos} visible={!occluded}>
+    <group position={pos} ref={groupRef} visible={!occluded}>
       <mesh ref={meshRef}>
         <sphereGeometry args={[0.01, 16, 16]} />
         <meshBasicMaterial color="#ff9800" />
