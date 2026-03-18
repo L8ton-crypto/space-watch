@@ -220,14 +220,14 @@ export async function fetchTLEData(): Promise<SatelliteData[]> {
     for (const source of sources) {
       let sats = parseTLE(source.tle, source.category);
 
-      // Cap Starlink to 200 to keep performance sane
+      // Cap Starlink to 800
       if (source.category === "Starlink") {
-        sats = sats.slice(0, 200);
+        sats = sats.slice(0, 800);
       }
 
-      // Cap Active to 300
+      // Cap Active to 800
       if (source.category === "Active") {
-        sats = sats.slice(0, 300);
+        sats = sats.slice(0, 800);
       }
 
       for (const sat of sats) {
