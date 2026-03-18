@@ -197,8 +197,8 @@ export default function Home() {
       <div
         style={{
           position: "absolute",
-          bottom: 20,
-          left: 20,
+          bottom: 24,
+          left: 16,
           display: "flex",
           flexDirection: "column",
           gap: 8,

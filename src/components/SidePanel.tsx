@@ -1,7 +1,6 @@
 "use client";
 
 import { SatellitePosition } from "@/lib/satellites";
-import { enableAudio, disableAudio, isAudioOn } from "@/lib/audio";
 import { useState, useEffect } from "react";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -9,13 +8,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   Brightest: "#4fc3f7",
   Active: "#66bb6a",
   Starlink: "#ffd54f",
-};
-
-const CATEGORY_ICONS: Record<string, string> = {
-  "Space Stations": "🏠",
-  Brightest: "🛰️",
-  Active: "📡",
-  Starlink: "⭐",
 };
 
 function getSatIcon(name: string, category: string): string {
@@ -27,6 +19,12 @@ function getSatIcon(name: string, category: string): string {
   if (upper.includes("STARLINK")) return "📶";
   if (upper.includes("GPS") || upper.includes("GALILEO") || upper.includes("BEIDOU")) return "🧭";
   if (upper.includes("NOAA") || upper.includes("GOES") || upper.includes("METEO")) return "🌤️";
+  const CATEGORY_ICONS: Record<string, string> = {
+    "Space Stations": "🏠",
+    Brightest: "🛰️",
+    Active: "📡",
+    Starlink: "⭐",
+  };
   return CATEGORY_ICONS[category] || "🛰️";
 }
 
@@ -47,7 +45,6 @@ function SatelliteCard({
   return (
     <button
       onClick={onClick}
-      className="sat-card"
       style={{
         width: "100%",
         textAlign: "left" as const,
@@ -98,7 +95,8 @@ function SatelliteCard({
   );
 }
 
-export default function SidePanel({
+// Shared list content
+function PanelContent({
   satellites,
   nearbySatellites,
   selectedId,
@@ -110,6 +108,7 @@ export default function SidePanel({
   onRequestLocation,
   audioEnabled,
   onToggleAudio,
+  onClose,
 }: {
   satellites: SatellitePosition[];
   nearbySatellites: SatellitePosition[];
@@ -122,18 +121,10 @@ export default function SidePanel({
   onRequestLocation: () => void;
   audioEnabled: boolean;
   onToggleAudio: () => void;
+  onClose?: () => void;
 }) {
   const [filter, setFilter] = useState("");
   const [showNearby, setShowNearby] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   const filtered = filter
     ? satellites.filter((s) => s.name.toLowerCase().includes(filter.toLowerCase()))
@@ -141,186 +132,8 @@ export default function SidePanel({
 
   const displayList = showNearby && nearbySatellites.length > 0 ? nearbySatellites : filtered;
 
-  // Mobile bottom drawer
-  if (isMobile) {
-    return (
-      <>
-        {/* Mobile header bar */}
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            padding: "12px 16px",
-            background: "rgba(10, 10, 15, 0.85)",
-            backdropFilter: "blur(20px)",
-            borderBottom: "1px solid rgba(30, 30, 46, 0.6)",
-            zIndex: 20,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 18 }}>🛰️</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#e0e0e8" }}>SpaceWatch</span>
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <button
-              onClick={onToggleAudio}
-              style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", opacity: audioEnabled ? 1 : 0.4 }}
-            >
-              {audioEnabled ? "🔊" : "🔇"}
-            </button>
-            <div style={{ fontSize: 12, color: "#4fc3f7", fontWeight: 600 }}>
-              {isLoading ? "..." : totalCount} tracked
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom drawer handle */}
-        <div
-          onClick={() => setDrawerOpen(!drawerOpen)}
-          style={{
-            position: "fixed",
-            bottom: drawerOpen ? "50vh" : 0,
-            left: 0,
-            right: 0,
-            padding: "12px 16px",
-            background: "rgba(10, 10, 15, 0.92)",
-            backdropFilter: "blur(20px)",
-            borderTop: "1px solid rgba(79, 195, 247, 0.2)",
-            zIndex: 20,
-            cursor: "pointer",
-            transition: "bottom 0.3s ease",
-          }}
-        >
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: "#333", margin: "0 auto 8px" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#4fc3f7" }}>{totalCount}</div>
-                <div style={{ fontSize: 8, color: "#6b6b80", textTransform: "uppercase" }}>Tracking</div>
-              </div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#ff9800" }}>{nearbySatellites.length}</div>
-                <div style={{ fontSize: 8, color: "#6b6b80", textTransform: "uppercase" }}>Overhead</div>
-              </div>
-            </div>
-            <span style={{ fontSize: 10, color: "#6b6b80" }}>
-              {drawerOpen ? "▼ Close" : "▲ View satellites"}
-            </span>
-          </div>
-        </div>
-
-        {/* Drawer content */}
-        {drawerOpen && (
-          <div
-            style={{
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: "50vh",
-              background: "rgba(10, 10, 15, 0.95)",
-              backdropFilter: "blur(20px)",
-              zIndex: 19,
-              overflowY: "auto",
-              padding: "60px 16px 16px",
-            }}
-          >
-            {/* Tabs */}
-            {observerLat !== null && (
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                <button
-                  onClick={() => setShowNearby(true)}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 20,
-                    border: "none",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    background: showNearby ? "rgba(255, 152, 0, 0.2)" : "rgba(30, 30, 46, 0.6)",
-                    color: showNearby ? "#ff9800" : "#6b6b80",
-                  }}
-                >
-                  Above Me ({nearbySatellites.length})
-                </button>
-                <button
-                  onClick={() => setShowNearby(false)}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 20,
-                    border: "none",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    background: !showNearby ? "rgba(79, 195, 247, 0.2)" : "rgba(30, 30, 46, 0.6)",
-                    color: !showNearby ? "#4fc3f7" : "#6b6b80",
-                  }}
-                >
-                  All ({totalCount})
-                </button>
-              </div>
-            )}
-
-            {!showNearby && (
-              <input
-                type="text"
-                placeholder="Search satellites..."
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(30, 30, 46, 0.8)",
-                  background: "rgba(18, 18, 26, 0.8)",
-                  color: "#e0e0e8",
-                  fontSize: 13,
-                  outline: "none",
-                  marginBottom: 10,
-                }}
-              />
-            )}
-
-            {displayList.map((sat) => (
-              <SatelliteCard
-                key={sat.id}
-                sat={sat}
-                isSelected={selectedId === sat.id}
-                isNearby={nearbySatellites.some((n) => n.id === sat.id)}
-                onClick={() => {
-                  onSelect(selectedId === sat.id ? null : sat.id);
-                  setDrawerOpen(false);
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </>
-    );
-  }
-
-  // Desktop side panel
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: "360px",
-        height: "100vh",
-        background: "rgba(10, 10, 15, 0.88)",
-        backdropFilter: "blur(20px)",
-        borderLeft: "1px solid rgba(30, 30, 46, 0.5)",
-        display: "flex",
-        flexDirection: "column",
-        zIndex: 10,
-      }}
-    >
+    <>
       {/* Header */}
       <div style={{ padding: "20px 16px 12px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
@@ -328,21 +141,38 @@ export default function SidePanel({
             <span style={{ fontSize: 22 }}>🛰️</span>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: "#e0e0e8", margin: 0 }}>SpaceWatch</h1>
           </div>
-          <button
-            onClick={onToggleAudio}
-            style={{
-              background: audioEnabled ? "rgba(79, 195, 247, 0.15)" : "rgba(30, 30, 46, 0.6)",
-              border: "none",
-              borderRadius: 8,
-              padding: "6px 10px",
-              cursor: "pointer",
-              fontSize: 14,
-              transition: "all 0.2s",
-            }}
-            title={audioEnabled ? "Mute sonification" : "Enable sonification"}
-          >
-            {audioEnabled ? "🔊" : "🔇"}
-          </button>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <button
+              onClick={onToggleAudio}
+              style={{
+                background: audioEnabled ? "rgba(79, 195, 247, 0.15)" : "rgba(30, 30, 46, 0.6)",
+                border: "none",
+                borderRadius: 8,
+                padding: "6px 10px",
+                cursor: "pointer",
+                fontSize: 14,
+              }}
+              title={audioEnabled ? "Mute" : "Enable sound"}
+            >
+              {audioEnabled ? "🔊" : "🔇"}
+            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                style={{
+                  background: "rgba(30, 30, 46, 0.6)",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  color: "#6b6b80",
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stats */}
@@ -398,7 +228,7 @@ export default function SidePanel({
               fontWeight: 600,
             }}
           >
-            📍 Enable location to see what's above you
+            📍 Enable location to see what&apos;s above you
           </button>
         ) : (
           <div style={{ fontSize: 10, color: "#6b6b80", marginBottom: 12, display: "flex", alignItems: "center", gap: 4 }}>
@@ -422,7 +252,6 @@ export default function SidePanel({
                 cursor: "pointer",
                 background: showNearby ? "rgba(255, 152, 0, 0.2)" : "rgba(30, 30, 46, 0.6)",
                 color: showNearby ? "#ff9800" : "#6b6b80",
-                transition: "all 0.2s",
               }}
             >
               Above Me ({nearbySatellites.length})
@@ -438,7 +267,6 @@ export default function SidePanel({
                 cursor: "pointer",
                 background: !showNearby ? "rgba(79, 195, 247, 0.2)" : "rgba(30, 30, 46, 0.6)",
                 color: !showNearby ? "#4fc3f7" : "#6b6b80",
-                transition: "all 0.2s",
               }}
             >
               All ({totalCount})
@@ -485,7 +313,10 @@ export default function SidePanel({
               sat={sat}
               isSelected={selectedId === sat.id}
               isNearby={nearbySatellites.some((n) => n.id === sat.id)}
-              onClick={() => onSelect(selectedId === sat.id ? null : sat.id)}
+              onClick={() => {
+                onSelect(selectedId === sat.id ? null : sat.id);
+                if (onClose) onClose();
+              }}
             />
           ))
         )}
@@ -501,8 +332,186 @@ export default function SidePanel({
           textAlign: "center",
         }}
       >
-        Data from CelesTrak · Updated every 30s · Built by Arc Forge ⚡
+        Data from CelesTrak · Updated every 5s · Built by Arc Forge ⚡
       </div>
+    </>
+  );
+}
+
+export default function SidePanel({
+  satellites,
+  nearbySatellites,
+  selectedId,
+  onSelect,
+  totalCount,
+  isLoading,
+  observerLat,
+  observerLng,
+  onRequestLocation,
+  audioEnabled,
+  onToggleAudio,
+}: {
+  satellites: SatellitePosition[];
+  nearbySatellites: SatellitePosition[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  totalCount: number;
+  isLoading: boolean;
+  observerLat: number | null;
+  observerLng: number | null;
+  onRequestLocation: () => void;
+  audioEnabled: boolean;
+  onToggleAudio: () => void;
+}) {
+  const [isMobile, setIsMobile] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Mobile: hamburger + slide-in side menu
+  if (isMobile) {
+    return (
+      <>
+        {/* Top bar with hamburger */}
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            padding: "10px 14px",
+            background: "rgba(10, 10, 15, 0.85)",
+            backdropFilter: "blur(20px)",
+            borderBottom: "1px solid rgba(30, 30, 46, 0.6)",
+            zIndex: 25,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={() => setMenuOpen(true)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#e0e0e8",
+                fontSize: 20,
+                cursor: "pointer",
+                padding: "4px 6px",
+                lineHeight: 1,
+              }}
+            >
+              ☰
+            </button>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#e0e0e8" }}>🛰️ SpaceWatch</span>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <button
+              onClick={onToggleAudio}
+              style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer", opacity: audioEnabled ? 1 : 0.4 }}
+            >
+              {audioEnabled ? "🔊" : "🔇"}
+            </button>
+            <div style={{ display: "flex", gap: 8, fontSize: 11 }}>
+              <span style={{ color: "#4fc3f7", fontWeight: 700 }}>{totalCount}</span>
+              <span style={{ color: "#6b6b80" }}>tracked</span>
+              {nearbySatellites.length > 0 && (
+                <>
+                  <span style={{ color: "#ff9800", fontWeight: 700 }}>{nearbySatellites.length}</span>
+                  <span style={{ color: "#6b6b80" }}>overhead</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Backdrop */}
+        {menuOpen && (
+          <div
+            onClick={() => setMenuOpen(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.5)",
+              zIndex: 29,
+            }}
+          />
+        )}
+
+        {/* Slide-in side menu from left */}
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "85vw",
+            maxWidth: "340px",
+            height: "100vh",
+            background: "rgba(10, 10, 15, 0.95)",
+            backdropFilter: "blur(20px)",
+            borderRight: "1px solid rgba(30, 30, 46, 0.6)",
+            zIndex: 30,
+            display: "flex",
+            flexDirection: "column",
+            transform: menuOpen ? "translateX(0)" : "translateX(-100%)",
+            transition: "transform 0.3s ease",
+          }}
+        >
+          <PanelContent
+            satellites={satellites}
+            nearbySatellites={nearbySatellites}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            totalCount={totalCount}
+            isLoading={isLoading}
+            observerLat={observerLat}
+            observerLng={observerLng}
+            onRequestLocation={onRequestLocation}
+            audioEnabled={audioEnabled}
+            onToggleAudio={onToggleAudio}
+            onClose={() => setMenuOpen(false)}
+          />
+        </div>
+      </>
+    );
+  }
+
+  // Desktop: side panel
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        right: 0,
+        width: "360px",
+        height: "100vh",
+        background: "rgba(10, 10, 15, 0.88)",
+        backdropFilter: "blur(20px)",
+        borderLeft: "1px solid rgba(30, 30, 46, 0.5)",
+        display: "flex",
+        flexDirection: "column",
+        zIndex: 10,
+      }}
+    >
+      <PanelContent
+        satellites={satellites}
+        nearbySatellites={nearbySatellites}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        totalCount={totalCount}
+        isLoading={isLoading}
+        observerLat={observerLat}
+        observerLng={observerLng}
+        onRequestLocation={onRequestLocation}
+        audioEnabled={audioEnabled}
+        onToggleAudio={onToggleAudio}
+      />
     </div>
   );
 }
