@@ -271,16 +271,25 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
   const groupRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
-    if (!groupRef.current) return;
-    // Clear previous
+    if (!groupRef.current || points.length < 2) return;
+
+    // Clear previous children
     while (groupRef.current.children.length) {
-      groupRef.current.remove(groupRef.current.children[0]);
+      const child = groupRef.current.children[0];
+      groupRef.current.remove(child);
     }
 
+    const col = new THREE.Color(color);
+    const earthRadius = 1.0;
+
+    // Split trail into segments: front (visible) rendered with depth test,
+    // back rendered as dashed/dim. For simplicity, render all with depthWrite false
+    // and two passes: solid line on top layer, dim line behind.
+
+    // Front pass: rendered on top of Earth
     const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(points.length * 3);
     const colors = new Float32Array(points.length * 3);
-    const col = new THREE.Color(color);
 
     for (let i = 0; i < points.length; i++) {
       const [x, y, z] = points[i].position;
@@ -288,7 +297,8 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
 
-      const fade = i / points.length;
+      // Fade: brighter at start (current position), fades along the orbit
+      const fade = 0.3 + 0.7 * (i / points.length);
       colors[i * 3] = col.r * fade;
       colors[i * 3 + 1] = col.g * fade;
       colors[i * 3 + 2] = col.b * fade;
@@ -297,13 +307,38 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
-    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5 });
-    const line = new THREE.Line(geo, mat);
-    groupRef.current.add(line);
+    // Visible line - renders in front, normal depth testing
+    const frontMat = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.7,
+      depthWrite: false,
+    });
+    const frontLine = new THREE.Line(geo, frontMat);
+    frontLine.renderOrder = 1;
+    groupRef.current.add(frontLine);
+
+    // Behind-Earth dashed line - shows the hidden part faintly
+    const backGeo = geo.clone();
+    const backMat = new THREE.LineDashedMaterial({
+      color: col,
+      transparent: true,
+      opacity: 0.15,
+      depthTest: false,
+      depthWrite: false,
+      dashSize: 0.02,
+      gapSize: 0.02,
+    });
+    const backLine = new THREE.Line(backGeo, backMat);
+    backLine.computeLineDistances();
+    backLine.renderOrder = -1;
+    groupRef.current.add(backLine);
 
     return () => {
       geo.dispose();
-      mat.dispose();
+      frontMat.dispose();
+      backGeo.dispose();
+      backMat.dispose();
     };
   }, [points, color]);
 
