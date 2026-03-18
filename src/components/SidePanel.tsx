@@ -95,6 +95,13 @@ function SatelliteCard({
   );
 }
 
+const ALL_CATEGORIES = [
+  { key: "Space Stations", label: "Stations", icon: "🚀", color: "#ff4444" },
+  { key: "Brightest", label: "Brightest", icon: "🛰️", color: "#4fc3f7" },
+  { key: "Active", label: "Active", icon: "📡", color: "#66bb6a" },
+  { key: "Starlink", label: "Starlink", icon: "📶", color: "#ffd54f" },
+];
+
 // Shared list content
 function PanelContent({
   satellites,
@@ -108,6 +115,10 @@ function PanelContent({
   onRequestLocation,
   audioEnabled,
   onToggleAudio,
+  activeCategories,
+  onToggleCategory,
+  searchQuery,
+  onSearchChange,
   onClose,
 }: {
   satellites: SatellitePosition[];
@@ -121,16 +132,15 @@ function PanelContent({
   onRequestLocation: () => void;
   audioEnabled: boolean;
   onToggleAudio: () => void;
+  activeCategories: Set<string>;
+  onToggleCategory: (cat: string) => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
   onClose?: () => void;
 }) {
-  const [filter, setFilter] = useState("");
   const [showNearby, setShowNearby] = useState(true);
 
-  const filtered = filter
-    ? satellites.filter((s) => s.name.toLowerCase().includes(filter.toLowerCase()))
-    : satellites;
-
-  const displayList = showNearby && nearbySatellites.length > 0 ? nearbySatellites : filtered;
+  const displayList = showNearby && nearbySatellites.length > 0 ? nearbySatellites : satellites;
 
   return (
     <>
@@ -238,7 +248,79 @@ function PanelContent({
           </div>
         )}
 
-        {/* Tabs */}
+        {/* Search - always visible */}
+        <div style={{ position: "relative", marginBottom: 10 }}>
+          <input
+            type="text"
+            placeholder="Search by name or description..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "9px 12px 9px 32px",
+              borderRadius: 8,
+              border: "1px solid rgba(30, 30, 46, 0.8)",
+              background: "rgba(18, 18, 26, 0.8)",
+              color: "#e0e0e8",
+              fontSize: 12,
+              outline: "none",
+            }}
+          />
+          <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, opacity: 0.4 }}>
+            🔍
+          </span>
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange("")}
+              style={{
+                position: "absolute",
+                right: 8,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                color: "#6b6b80",
+                fontSize: 12,
+                cursor: "pointer",
+                padding: "2px 4px",
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Category filters */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          {ALL_CATEGORIES.map((cat) => {
+            const active = activeCategories.has(cat.key);
+            return (
+              <button
+                key={cat.key}
+                onClick={() => onToggleCategory(cat.key)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 16,
+                  border: `1px solid ${active ? cat.color + "50" : "rgba(30, 30, 46, 0.6)"}`,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  background: active ? cat.color + "20" : "rgba(30, 30, 46, 0.4)",
+                  color: active ? cat.color : "#4a4a5a",
+                  transition: "all 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <span style={{ fontSize: 11 }}>{cat.icon}</span>
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tabs: Above Me / All */}
         {observerLat !== null && (
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <button
@@ -273,26 +355,6 @@ function PanelContent({
             </button>
           </div>
         )}
-
-        {/* Search */}
-        {!showNearby && (
-          <input
-            type="text"
-            placeholder="Search satellites..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "9px 12px",
-              borderRadius: 8,
-              border: "1px solid rgba(30, 30, 46, 0.8)",
-              background: "rgba(18, 18, 26, 0.8)",
-              color: "#e0e0e8",
-              fontSize: 12,
-              outline: "none",
-            }}
-          />
-        )}
       </div>
 
       {/* List */}
@@ -304,7 +366,7 @@ function PanelContent({
           </div>
         ) : displayList.length === 0 ? (
           <div style={{ textAlign: "center", padding: 40, color: "#6b6b80", fontSize: 12 }}>
-            {filter ? "No matches found" : "No satellites overhead right now"}
+            {searchQuery ? "No matches found" : "No satellites in this view"}
           </div>
         ) : (
           displayList.map((sat) => (
@@ -350,6 +412,10 @@ export default function SidePanel({
   onRequestLocation,
   audioEnabled,
   onToggleAudio,
+  activeCategories,
+  onToggleCategory,
+  searchQuery,
+  onSearchChange,
 }: {
   satellites: SatellitePosition[];
   nearbySatellites: SatellitePosition[];
@@ -362,6 +428,10 @@ export default function SidePanel({
   onRequestLocation: () => void;
   audioEnabled: boolean;
   onToggleAudio: () => void;
+  activeCategories: Set<string>;
+  onToggleCategory: (cat: string) => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
 }) {
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -475,6 +545,10 @@ export default function SidePanel({
             onRequestLocation={onRequestLocation}
             audioEnabled={audioEnabled}
             onToggleAudio={onToggleAudio}
+            activeCategories={activeCategories}
+            onToggleCategory={onToggleCategory}
+            searchQuery={searchQuery}
+            onSearchChange={onSearchChange}
             onClose={() => setMenuOpen(false)}
           />
         </div>
@@ -511,6 +585,10 @@ export default function SidePanel({
         onRequestLocation={onRequestLocation}
         audioEnabled={audioEnabled}
         onToggleAudio={onToggleAudio}
+        activeCategories={activeCategories}
+        onToggleCategory={onToggleCategory}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
       />
     </div>
   );

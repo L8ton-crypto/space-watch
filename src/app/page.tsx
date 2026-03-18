@@ -56,6 +56,8 @@ export default function Home() {
   const [orbitColor, setOrbitColor] = useState("#4fc3f7");
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [flyTarget, setFlyTarget] = useState<[number, number, number] | null>(null);
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(["Space Stations", "Brightest"]));
+  const [searchQuery, setSearchQuery] = useState("");
   const prevNearbyRef = useRef<Set<string>>(new Set());
 
   // Fetch TLE data
@@ -154,6 +156,31 @@ export default function Home() {
     requestLocation();
   }, [requestLocation]);
 
+  // Filter positions by active categories and search
+  const filteredPositions = positions.filter((p) => {
+    if (!activeCategories.has(p.category)) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (
+        p.name.toLowerCase().includes(q) ||
+        (p.description && p.description.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
+
+  const toggleCategory = useCallback((cat: string) => {
+    setActiveCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) {
+        next.delete(cat);
+      } else {
+        next.add(cat);
+      }
+      return next;
+    });
+  }, []);
+
   const toggleAudio = useCallback(() => {
     if (audioEnabled) {
       disableAudio();
@@ -182,7 +209,7 @@ export default function Home() {
   return (
     <main style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }}>
       <Globe
-        satellites={positions}
+        satellites={filteredPositions}
         nearbySatellites={nearbySatellites}
         selectedId={selectedId}
         onSelect={setSelectedId}
@@ -254,17 +281,21 @@ export default function Home() {
       </div>
 
       <SidePanel
-        satellites={positions}
+        satellites={filteredPositions}
         nearbySatellites={nearbySatellites}
         selectedId={selectedId}
         onSelect={setSelectedId}
-        totalCount={positions.length}
+        totalCount={filteredPositions.length}
         isLoading={isLoading}
         observerLat={observerLat}
         observerLng={observerLng}
         onRequestLocation={requestLocation}
         audioEnabled={audioEnabled}
         onToggleAudio={toggleAudio}
+        activeCategories={activeCategories}
+        onToggleCategory={toggleCategory}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
     </main>
   );
