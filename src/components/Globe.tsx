@@ -176,8 +176,14 @@ function SatelliteMarker({
 
   return (
     <group position={position} ref={groupRef} visible={!occluded}>
+      {/* Invisible hit target - much bigger for easy tapping */}
+      <mesh onClick={handleClick}>
+        <sphereGeometry args={[isStation ? 0.05 : 0.03, 8, 8]} />
+        <meshBasicMaterial visible={false} />
+      </mesh>
+
       {/* Core dot */}
-      <mesh ref={meshRef} onClick={handleClick}>
+      <mesh ref={meshRef}>
         <sphereGeometry args={[isStation ? 0.015 : 0.006, 8, 8]} />
         <meshBasicMaterial color={color} />
       </mesh>
@@ -394,6 +400,55 @@ function Satellites({
   );
 }
 
+// --- Camera fly-to controller ---
+function CameraController({ flyTarget }: { flyTarget: [number, number, number] | null }) {
+  const { camera } = useThree();
+  const controlsRef = useRef<any>(null);
+  const targetRef = useRef<THREE.Vector3 | null>(null);
+  const progressRef = useRef(0);
+  const startPosRef = useRef(new THREE.Vector3());
+
+  useEffect(() => {
+    if (flyTarget) {
+      // Calculate camera position: place camera looking at the target from outside
+      const targetVec = new THREE.Vector3(...flyTarget).normalize();
+      const camPos = targetVec.clone().multiplyScalar(2.8); // distance from origin
+      startPosRef.current.copy(camera.position);
+      targetRef.current = camPos;
+      progressRef.current = 0;
+    }
+  }, [flyTarget, camera]);
+
+  useFrame(() => {
+    if (targetRef.current && progressRef.current < 1) {
+      progressRef.current += 0.02;
+      const t = Math.min(1, progressRef.current);
+      // Smooth ease-in-out
+      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      camera.position.lerpVectors(startPosRef.current, targetRef.current, ease);
+      camera.lookAt(0, 0, 0);
+
+      if (t >= 1) {
+        targetRef.current = null;
+      }
+    }
+  });
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={false}
+      minDistance={1.5}
+      maxDistance={8}
+      enableDamping
+      dampingFactor={0.05}
+      rotateSpeed={0.5}
+      touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
+    />
+  );
+}
+
 // --- Scene ---
 function Scene({
   satellites,
@@ -404,6 +459,7 @@ function Scene({
   observerLng,
   orbitTrail,
   orbitColor,
+  flyTarget,
 }: {
   satellites: SatellitePosition[];
   nearbySatellites: SatellitePosition[];
@@ -413,6 +469,7 @@ function Scene({
   observerLng: number | null;
   orbitTrail: OrbitPoint[];
   orbitColor: string;
+  flyTarget: [number, number, number] | null;
 }) {
   return (
     <>
@@ -432,15 +489,7 @@ function Scene({
       {observerLat !== null && observerLng !== null && (
         <ObserverMarker lat={observerLat} lng={observerLng} />
       )}
-      <OrbitControls
-        enablePan={false}
-        minDistance={1.5}
-        maxDistance={8}
-        enableDamping
-        dampingFactor={0.05}
-        rotateSpeed={0.5}
-        touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
-      />
+      <CameraController flyTarget={flyTarget} />
     </>
   );
 }
@@ -455,6 +504,7 @@ export default function Globe({
   observerLng,
   orbitTrail,
   orbitColor,
+  flyTarget,
 }: {
   satellites: SatellitePosition[];
   nearbySatellites: SatellitePosition[];
@@ -464,6 +514,7 @@ export default function Globe({
   observerLng: number | null;
   orbitTrail: OrbitPoint[];
   orbitColor: string;
+  flyTarget: [number, number, number] | null;
 }) {
   return (
     <Canvas
@@ -480,6 +531,7 @@ export default function Globe({
         observerLng={observerLng}
         orbitTrail={orbitTrail}
         orbitColor={orbitColor}
+        flyTarget={flyTarget}
       />
     </Canvas>
   );

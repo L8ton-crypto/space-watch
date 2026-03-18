@@ -8,6 +8,7 @@ import {
   fetchTLEData,
   getSatellitePosition,
   isVisibleFrom,
+  latLngToVector3,
 } from "@/lib/satellites";
 import { getOrbitTrail, OrbitPoint } from "@/lib/orbits";
 import { enableAudio, disableAudio, playPassTone, playAmbient } from "@/lib/audio";
@@ -54,6 +55,7 @@ export default function Home() {
   const [orbitTrail, setOrbitTrail] = useState<OrbitPoint[]>([]);
   const [orbitColor, setOrbitColor] = useState("#4fc3f7");
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [flyTarget, setFlyTarget] = useState<[number, number, number] | null>(null);
   const prevNearbyRef = useRef<Set<string>>(new Set());
 
   // Fetch TLE data
@@ -162,6 +164,21 @@ export default function Home() {
     }
   }, [audioEnabled]);
 
+  const flyToMe = useCallback(() => {
+    if (observerLat !== null && observerLng !== null) {
+      setFlyTarget(latLngToVector3(observerLat, observerLng, 0));
+    }
+  }, [observerLat, observerLng]);
+
+  const flyToSelected = useCallback(() => {
+    if (selectedId) {
+      const sat = positions.find((p) => p.id === selectedId);
+      if (sat) {
+        setFlyTarget(latLngToVector3(sat.lat, sat.lng, sat.alt));
+      }
+    }
+  }, [selectedId, positions]);
+
   return (
     <main style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }}>
       <Globe
@@ -173,7 +190,69 @@ export default function Home() {
         observerLng={observerLng}
         orbitTrail={orbitTrail}
         orbitColor={orbitColor}
+        flyTarget={flyTarget}
       />
+
+      {/* Navigation buttons */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 20,
+          left: 20,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          zIndex: 15,
+        }}
+      >
+        {observerLat !== null && (
+          <button
+            onClick={flyToMe}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              border: "1px solid rgba(255, 152, 0, 0.3)",
+              background: "rgba(10, 10, 15, 0.85)",
+              backdropFilter: "blur(12px)",
+              color: "#ff9800",
+              fontSize: 18,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.2s",
+            }}
+            title="Fly to my location"
+          >
+            📍
+          </button>
+        )}
+        {selectedId && (
+          <button
+            onClick={flyToSelected}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              border: "1px solid rgba(79, 195, 247, 0.3)",
+              background: "rgba(10, 10, 15, 0.85)",
+              backdropFilter: "blur(12px)",
+              color: "#4fc3f7",
+              fontSize: 18,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.2s",
+            }}
+            title="Fly to selected satellite"
+          >
+            🛰️
+          </button>
+        )}
+      </div>
+
       <SidePanel
         satellites={positions}
         nearbySatellites={nearbySatellites}
