@@ -231,17 +231,16 @@ export default function Home() {
         flyTarget={flyTarget}
       />
 
-      {/* Navigation buttons - centered above time scrubber */}
+      {/* Navigation buttons - left side, vertically centered */}
       <div
         style={{
           position: "absolute",
-          bottom: 90,
-          left: "50%",
-          transform: "translateX(-50%)",
+          top: "50%",
+          left: 16,
+          transform: "translateY(-50%)",
           display: "flex",
-          flexDirection: "row",
+          flexDirection: "column",
           gap: 10,
-          alignItems: "center",
           zIndex: 21,
         }}
       >
