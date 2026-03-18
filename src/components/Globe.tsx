@@ -475,7 +475,7 @@ function CameraController({ flyTarget }: { flyTarget: [number, number, number] |
     if (flyTarget) {
       // Calculate camera position: place camera looking at the target from outside
       const targetVec = new THREE.Vector3(...flyTarget).normalize();
-      const camPos = targetVec.clone().multiplyScalar(2.8); // distance from origin
+      const camPos = targetVec.clone().multiplyScalar(3.5); // distance from origin
       startPosRef.current.copy(camera.position);
       targetRef.current = camPos;
       progressRef.current = 0;
@@ -581,7 +581,7 @@ export default function Globe({
 }) {
   return (
     <Canvas
-      camera={{ position: [0, 0, 3], fov: 45 }}
+      camera={{ position: [0, 0, 3.8], fov: 45 }}
       style={{ background: "#0a0a0f", zIndex: 1 }}
       gl={{ antialias: true, alpha: false }}
       onPointerMissed={() => onSelect(null)}
