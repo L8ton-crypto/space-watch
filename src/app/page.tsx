@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
   SatelliteData,
@@ -9,9 +9,17 @@ import {
   getSatellitePosition,
   isVisibleFrom,
 } from "@/lib/satellites";
+import { getOrbitTrail, OrbitPoint } from "@/lib/orbits";
+import { enableAudio, disableAudio, playPassTone, playAmbient } from "@/lib/audio";
 import SidePanel from "@/components/SidePanel";
 
-// Dynamic import for Globe (needs WebGL)
+const CATEGORY_COLORS: Record<string, string> = {
+  "Space Stations": "#ff4444",
+  Brightest: "#4fc3f7",
+  Active: "#66bb6a",
+  Starlink: "#ffd54f",
+};
+
 const Globe = dynamic(() => import("@/components/Globe"), {
   ssr: false,
   loading: () => (
@@ -28,8 +36,9 @@ const Globe = dynamic(() => import("@/components/Globe"), {
         gap: 16,
       }}
     >
-      <div style={{ fontSize: 48 }}>🌍</div>
-      <div style={{ fontSize: 14, opacity: 0.6 }}>Loading SpaceWatch...</div>
+      <div style={{ fontSize: 56 }} className="glow-pulse">🌍</div>
+      <div style={{ fontSize: 14, color: "#6b6b80" }}>Loading SpaceWatch...</div>
+      <div style={{ fontSize: 11, color: "#4a4a5a" }}>Scanning orbital data</div>
     </div>
   ),
 });
@@ -42,6 +51,10 @@ export default function Home() {
   const [observerLat, setObserverLat] = useState<number | null>(null);
   const [observerLng, setObserverLng] = useState<number | null>(null);
   const [nearbySatellites, setNearbySatellites] = useState<SatellitePosition[]>([]);
+  const [orbitTrail, setOrbitTrail] = useState<OrbitPoint[]>([]);
+  const [orbitColor, setOrbitColor] = useState("#4fc3f7");
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const prevNearbyRef = useRef<Set<string>>(new Set());
 
   // Fetch TLE data
   useEffect(() => {
@@ -56,8 +69,6 @@ export default function Home() {
       setIsLoading(false);
     }
     load();
-
-    // Refresh TLE data every 2 hours
     const interval = setInterval(load, 2 * 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -77,12 +88,20 @@ export default function Home() {
 
       setPositions(newPositions);
 
-      // Update nearby
       if (observerLat !== null && observerLng !== null) {
         const nearby = newPositions
           .filter((p) => isVisibleFrom(p, observerLat, observerLng, 1500))
           .sort((a, b) => a.alt - b.alt);
         setNearbySatellites(nearby);
+
+        // Sonification: play tone for newly detected overhead satellites
+        const currentIds = new Set(nearby.map((s) => s.id));
+        for (const sat of nearby) {
+          if (!prevNearbyRef.current.has(sat.id)) {
+            playPassTone(sat.alt, sat.category);
+          }
+        }
+        prevNearbyRef.current = currentIds;
       }
     }
 
@@ -91,7 +110,29 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [satellites, observerLat, observerLng]);
 
-  // Request geolocation
+  // Ambient sound loop
+  useEffect(() => {
+    if (!audioEnabled) return;
+    const interval = setInterval(playAmbient, 8000);
+    return () => clearInterval(interval);
+  }, [audioEnabled]);
+
+  // Generate orbit trail for selected satellite
+  useEffect(() => {
+    if (!selectedId) {
+      setOrbitTrail([]);
+      return;
+    }
+    const sat = satellites.find((s) => s.id === selectedId);
+    if (!sat) {
+      setOrbitTrail([]);
+      return;
+    }
+    const trail = getOrbitTrail(sat, new Date(), 180);
+    setOrbitTrail(trail);
+    setOrbitColor(CATEGORY_COLORS[sat.category] || "#4fc3f7");
+  }, [selectedId, satellites]);
+
   const requestLocation = useCallback(() => {
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -99,9 +140,7 @@ export default function Home() {
           setObserverLat(pos.coords.latitude);
           setObserverLng(pos.coords.longitude);
         },
-        (err) => {
-          console.warn("Location denied:", err);
-          // Default to London
+        () => {
           setObserverLat(50.7236);
           setObserverLng(-3.5275);
         }
@@ -109,19 +148,31 @@ export default function Home() {
     }
   }, []);
 
-  // Auto-request location on mount
   useEffect(() => {
     requestLocation();
   }, [requestLocation]);
 
+  const toggleAudio = useCallback(() => {
+    if (audioEnabled) {
+      disableAudio();
+      setAudioEnabled(false);
+    } else {
+      enableAudio();
+      setAudioEnabled(true);
+    }
+  }, [audioEnabled]);
+
   return (
-    <main style={{ width: "100vw", height: "100vh", position: "relative" }}>
+    <main style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }}>
       <Globe
         satellites={positions}
+        nearbySatellites={nearbySatellites}
         selectedId={selectedId}
         onSelect={setSelectedId}
         observerLat={observerLat}
         observerLng={observerLng}
+        orbitTrail={orbitTrail}
+        orbitColor={orbitColor}
       />
       <SidePanel
         satellites={positions}
@@ -133,6 +184,8 @@ export default function Home() {
         observerLat={observerLat}
         observerLng={observerLng}
         onRequestLocation={requestLocation}
+        audioEnabled={audioEnabled}
+        onToggleAudio={toggleAudio}
       />
     </main>
   );

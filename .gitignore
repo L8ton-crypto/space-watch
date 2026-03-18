@@ -16,3 +16,5 @@
 *.pem
 .env*.local
 .vercel
+
+.vercel
