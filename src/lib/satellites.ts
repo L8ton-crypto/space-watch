@@ -138,7 +138,7 @@ export function latLngToVector3(lat: number, lng: number, alt: number, earthRadi
 
 export async function fetchTLEData(): Promise<SatelliteData[]> {
   // Fetch space stations and bright objects for MVP
-  const sources = TLE_SOURCES.slice(0, 2); // stations + brightest
+  const sources = TLE_SOURCES; // all categories including Starlink
   const allSats: SatelliteData[] = [];
   const seen = new Set<string>();
 
@@ -147,7 +147,19 @@ export async function fetchTLEData(): Promise<SatelliteData[]> {
       const res = await fetch(source.url);
       if (!res.ok) continue;
       const text = await res.text();
-      const sats = parseTLE(text, source.category);
+      let sats = parseTLE(text, source.category);
+
+      // Cap Starlink to 200 to keep performance sane
+      // (full constellation is 6000+)
+      if (source.category === "Starlink") {
+        sats = sats.slice(0, 200);
+      }
+
+      // Cap Active to 300 (it's a huge list)
+      if (source.category === "Active") {
+        sats = sats.slice(0, 300);
+      }
+
       for (const sat of sats) {
         if (!seen.has(sat.id)) {
           seen.add(sat.id);
