@@ -13,6 +13,7 @@ import {
 import { getOrbitTrail, OrbitPoint } from "@/lib/orbits";
 import { enableAudio, disableAudio, playPassTone, playAmbient } from "@/lib/audio";
 import SidePanel from "@/components/SidePanel";
+import TimeScrubber from "@/components/TimeScrubber";
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Space Stations": "#ff4444",
@@ -58,7 +59,17 @@ export default function Home() {
   const [flyTarget, setFlyTarget] = useState<[number, number, number] | null>(null);
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(["Space Stations", "Brightest"]));
   const [searchQuery, setSearchQuery] = useState("");
+  const [timeOffsetMs, setTimeOffsetMs] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const prevNearbyRef = useRef<Set<string>>(new Set());
+
+  // Mobile detection
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Fetch TLE data
   useEffect(() => {
@@ -82,7 +93,7 @@ export default function Home() {
     if (satellites.length === 0) return;
 
     function updatePositions() {
-      const now = new Date();
+      const now = new Date(Date.now() + timeOffsetMs);
       const newPositions: SatellitePosition[] = [];
 
       for (const sat of satellites) {
@@ -112,7 +123,7 @@ export default function Home() {
     updatePositions();
     const interval = setInterval(updatePositions, 5000);
     return () => clearInterval(interval);
-  }, [satellites, observerLat, observerLng]);
+  }, [satellites, observerLat, observerLng, timeOffsetMs]);
 
   // Ambient sound loop
   useEffect(() => {
@@ -132,10 +143,10 @@ export default function Home() {
       setOrbitTrail([]);
       return;
     }
-    const trail = getOrbitTrail(sat, new Date(), 180);
+    const trail = getOrbitTrail(sat, new Date(Date.now() + timeOffsetMs), 180);
     setOrbitTrail(trail);
     setOrbitColor(CATEGORY_COLORS[sat.category] || "#4fc3f7");
-  }, [selectedId, satellites]);
+  }, [selectedId, satellites, timeOffsetMs]);
 
   const requestLocation = useCallback(() => {
     if (typeof navigator !== "undefined" && navigator.geolocation) {
@@ -279,6 +290,12 @@ export default function Home() {
           </button>
         )}
       </div>
+
+      <TimeScrubber
+        offsetMs={timeOffsetMs}
+        onOffsetChange={setTimeOffsetMs}
+        isMobile={isMobile}
+      />
 
       <SidePanel
         satellites={filteredPositions}
