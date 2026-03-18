@@ -28,35 +28,106 @@ export interface SatellitePosition {
   velocity?: number; // km/s
 }
 
-// Well-known satellite descriptions
-const DESCRIPTIONS: Record<string, string> = {
-  "ISS (ZARYA)": "International Space Station - 7 crew members, orbiting at 17,500 mph since 1998",
-  "ISS": "International Space Station - 7 crew members, orbiting at 17,500 mph since 1998",
-  "HST": "Hubble Space Telescope - capturing the universe since 1990",
-  "HUBBLE": "Hubble Space Telescope - capturing the universe since 1990",
-  "TIANGONG": "China's space station - 3 crew members aboard",
-  "CSS (TIANHE)": "China's Tianhe core module - the backbone of their space station",
-  "TERRA": "NASA Earth-observing satellite - monitoring climate since 1999",
-  "AQUA": "NASA water cycle research satellite - studying Earth's water systems",
-  "NOAA 19": "Weather satellite - powering your weather forecasts",
-  "GOES 16": "Geostationary weather sat - watches half the Earth at once",
-  "GOES 17": "Geostationary weather sat - US West Coast coverage",
-  "JAMES WEBB": "James Webb Space Telescope - peering at the dawn of the universe",
-  "JWST": "James Webb Space Telescope - peering at the dawn of the universe",
-};
-
+// Well-known satellite descriptions with origin/purpose
+// Format: "Description | Origin · Purpose"
 function getDescription(name: string): string {
   const upper = name.toUpperCase();
-  for (const [key, desc] of Object.entries(DESCRIPTIONS)) {
-    if (upper.includes(key)) return desc;
-  }
-  if (upper.includes("STARLINK")) return "SpaceX Starlink - part of the 6,000+ satellite internet constellation";
-  if (upper.includes("ONEWEB")) return "OneWeb broadband satellite - global internet constellation";
-  if (upper.includes("IRIDIUM")) return "Iridium communications satellite - global voice and data network";
-  if (upper.includes("GPS")) return "GPS navigation satellite - helping billions find their way";
-  if (upper.includes("COSMOS") || upper.includes("KOSMOS")) return "Russian military/civilian satellite";
-  if (upper.includes("BEIDOU")) return "Chinese navigation satellite - China's GPS equivalent";
-  if (upper.includes("GALILEO")) return "European navigation satellite - EU's GPS system";
+
+  // === ISS - distinguish the station from debris/modules ===
+  if (upper === "ISS (ZARYA)") return "International Space Station - crewed since 2000, largest structure in orbit | 🇺🇸🇷🇺🇪🇺🇯🇵🇨🇦 · Crewed research";
+  if (upper === "ISS (NAUKA)") return "Russian multipurpose lab module, docked to ISS 2021 | 🇷🇺 Roscosmos · Research module";
+  if (upper.includes("ISS OBJECT") || upper.includes("ISS DEB")) return "Debris or released object from the ISS | 🌍 International · Space debris";
+  if (upper.startsWith("ISS") && !upper.includes("ISIS")) return "Component or object associated with the ISS | 🌍 International · Station hardware";
+
+  // === Chinese Space Station ===
+  if (upper === "CSS (TIANHE)") return "Core module of China's Tiangong space station, launched 2021 | 🇨🇳 CNSA · Crewed station core";
+  if (upper === "CSS (WENTIAN)") return "Experiment module of China's space station, launched 2022 | 🇨🇳 CNSA · Research lab";
+  if (upper === "CSS (MENGTIAN)") return "Experiment module of China's space station, launched 2022 | 🇨🇳 CNSA · Research lab";
+  if (upper.includes("TIANZHOU")) return "Chinese cargo spacecraft supplying Tiangong station | 🇨🇳 CNSA · Cargo resupply";
+  if (upper.includes("SHENZHOU")) return "Chinese crewed spacecraft | 🇨🇳 CNSA · Crew transport";
+  if (upper.includes("TIANGONG")) return "China's space station | 🇨🇳 CNSA · Crewed station";
+
+  // === Telescopes ===
+  if (upper === "HST" || upper.includes("HUBBLE")) return "Hubble Space Telescope - imaging the universe since 1990 | 🇺🇸 NASA/ESA · Space telescope";
+  if (upper.includes("JAMES WEBB") || upper.includes("JWST")) return "James Webb Space Telescope - infrared observatory at L2 | 🇺🇸🇪🇺🇨🇦 NASA/ESA/CSA · Deep space telescope";
+  if (upper.includes("XRISM")) return "X-ray Imaging and Spectroscopy Mission | 🇯🇵 JAXA/NASA · X-ray astronomy";
+  if (upper.includes("ASTRO-H") || upper.includes("HITOMI")) return "Japanese X-ray astronomy satellite (lost contact 2016) | 🇯🇵 JAXA · X-ray telescope";
+
+  // === Russian crewed vehicles ===
+  if (upper.includes("SOYUZ")) return "Russian crewed spacecraft docked at ISS | 🇷🇺 Roscosmos · Crew transport";
+  if (upper.includes("PROGRESS")) return "Russian cargo spacecraft supplying the ISS | 🇷🇺 Roscosmos · Cargo resupply";
+
+  // === US crewed vehicles ===
+  if (upper.includes("CREW DRAGON")) return "SpaceX Crew Dragon spacecraft docked at ISS | 🇺🇸 SpaceX · Crew transport";
+  if (upper.includes("STARLINER")) return "Boeing Starliner crew capsule | 🇺🇸 Boeing · Crew transport";
+
+  // === Starlink ===
+  if (upper.includes("STARLINK")) return "SpaceX internet satellite, part of 6,000+ constellation | 🇺🇸 SpaceX · Broadband internet";
+
+  // === OneWeb ===
+  if (upper.includes("ONEWEB")) return "Low Earth orbit broadband satellite | 🇬🇧 OneWeb · Internet constellation";
+
+  // === Iridium ===
+  if (upper.includes("IRIDIUM")) return "Global satellite phone and data network | 🇺🇸 Iridium · Communications";
+
+  // === Navigation ===
+  if (upper.includes("GPS")) return "US Global Positioning System satellite | 🇺🇸 US Space Force · Navigation";
+  if (upper.includes("BEIDOU")) return "Chinese navigation system satellite | 🇨🇳 CNSA · Navigation";
+  if (upper.includes("GALILEO")) return "European navigation system satellite | 🇪🇺 ESA · Navigation";
+  if (upper.includes("GLONASS")) return "Russian navigation system satellite | 🇷🇺 Roscosmos · Navigation";
+
+  // === Weather ===
+  if (upper.includes("NOAA")) return "US weather and environmental monitoring satellite | 🇺🇸 NOAA · Weather observation";
+  if (upper.includes("GOES")) return "Geostationary weather satellite, real-time storm tracking | 🇺🇸 NOAA/NASA · Weather";
+  if (upper.includes("METEOSAT")) return "European geostationary weather satellite | 🇪🇺 EUMETSAT · Weather";
+  if (upper.includes("METOP")) return "European polar-orbiting weather satellite | 🇪🇺 EUMETSAT · Weather";
+
+  // === Earth observation ===
+  if (upper.includes("TERRA")) return "Earth-observing satellite, monitoring climate since 1999 | 🇺🇸 NASA · Earth science";
+  if (upper.includes("AQUA")) return "Water cycle and Earth science research satellite | 🇺🇸 NASA · Earth science";
+  if (upper.includes("LANDSAT")) return "Longest-running Earth observation programme | 🇺🇸 NASA/USGS · Earth imaging";
+  if (upper.includes("SENTINEL")) return "Copernicus Earth observation satellite | 🇪🇺 ESA · Environmental monitoring";
+  if (upper.includes("ENVISAT")) return "European environmental satellite (inactive since 2012) | 🇪🇺 ESA · Earth observation";
+  if (upper.includes("ALOS")) return "Japanese Earth observation satellite | 🇯🇵 JAXA · Earth observation";
+  if (upper.includes("ERS-")) return "European Remote Sensing satellite | 🇪🇺 ESA · Earth observation";
+  if (upper.includes("COSMO-SKYMED")) return "Italian radar Earth observation satellite | 🇮🇹 ASI · Radar imaging";
+  if (upper.includes("SAOCOM")) return "Argentine radar observation satellite | 🇦🇷 CONAE · Radar imaging";
+
+  // === Russian satellites ===
+  if (upper.includes("COSMOS") || upper.includes("KOSMOS")) return "Russian military or civilian satellite | 🇷🇺 Russia · Various missions";
+  if (upper.includes("OKEAN")) return "Russian ocean observation satellite | 🇷🇺 Roscosmos · Ocean monitoring";
+  if (upper.includes("RESURS")) return "Russian Earth resources satellite | 🇷🇺 Roscosmos · Earth observation";
+  if (upper.includes("INTERCOSMOS")) return "Soviet international cooperation satellite | 🇷🇺 Soviet/International · Science";
+
+  // === Chinese satellites ===
+  if (upper.includes("YAOGAN")) return "Chinese remote sensing satellite | 🇨🇳 CNSA · Earth observation";
+  if (upper.includes("SHIJIAN") || upper.includes("SJ-")) return "Chinese experimental satellite | 🇨🇳 CNSA · Technology testing";
+  if (upper.includes("CHUANGXIN") || upper.includes("CX-")) return "Chinese small technology satellite | 🇨🇳 CNSA · Technology";
+  if (upper.includes("HXMT") || upper.includes("HUIYAN")) return "Chinese X-ray telescope satellite | 🇨🇳 CNSA · X-ray astronomy";
+
+  // === Rocket bodies (debris by origin) ===
+  if (upper.includes("SL-")) return "Russian rocket upper stage (debris) | 🇷🇺 Russia · Spent rocket body";
+  if (upper.includes("CZ-")) return "Chinese Long March rocket stage (debris) | 🇨🇳 China · Spent rocket body";
+  if (upper.includes("H-2A R/B")) return "Japanese H-IIA rocket stage | 🇯🇵 JAXA · Spent rocket body";
+  if (upper.includes("ARIANE")) return "European Ariane rocket stage | 🇪🇺 Arianespace · Spent rocket body";
+  if (upper.includes("DELTA")) return "US Delta rocket stage | 🇺🇸 ULA · Spent rocket body";
+  if (upper.includes("ATLAS")) return "US Atlas rocket stage | 🇺🇸 ULA · Spent rocket body";
+  if (upper.includes("TITAN")) return "US Titan rocket stage | 🇺🇸 USAF · Spent rocket body";
+  if (upper.includes("FALCON")) return "SpaceX Falcon rocket stage | 🇺🇸 SpaceX · Spent rocket body";
+  if (upper.includes("GSLV R/B")) return "Indian GSLV rocket stage | 🇮🇳 ISRO · Spent rocket body";
+  if (upper.includes("PSLV R/B")) return "Indian PSLV rocket stage | 🇮🇳 ISRO · Spent rocket body";
+  if (upper.includes("FREGAT")) return "Russian Fregat upper stage (debris) | 🇷🇺 Roscosmos · Spent rocket body";
+
+  // === Other notable ===
+  if (upper.includes("USA ")) return "US military satellite (classified) | 🇺🇸 US DoD · Classified";
+  if (upper.includes("AJISAI")) return "Japanese geodetic satellite, covered in mirrors | 🇯🇵 JAXA · Geodesy";
+  if (upper.includes("ACS3")) return "NASA Advanced Composite Solar Sail System | 🇺🇸 NASA · Solar sail tech demo";
+  if (upper.includes("HTV")) return "Japanese cargo transfer vehicle for ISS | 🇯🇵 JAXA · Cargo resupply";
+
+  // === Generic R/B (rocket body) ===
+  if (upper.includes("R/B")) return "Spent rocket body - orbital debris";
+  if (upper.includes("DEB")) return "Tracked space debris";
+
   return "";
 }
 
