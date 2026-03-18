@@ -106,7 +106,7 @@ export default function Home() {
     }
 
     updatePositions();
-    const interval = setInterval(updatePositions, 30000);
+    const interval = setInterval(updatePositions, 5000);
     return () => clearInterval(interval);
   }, [satellites, observerLat, observerLng]);
 
