@@ -198,16 +198,25 @@ function SatelliteMarker({
     }
   });
 
-  const handleClick = () => {
-    if (occluded) return;
-    playSelectTone();
-    onClick();
+  const pointerDownTime = useRef(0);
+
+  const handlePointerDown = () => {
+    pointerDownTime.current = Date.now();
+  };
+
+  const handlePointerUp = () => {
+    // Only count as a tap if pointer was held less than 200ms (not a drag/rotate)
+    if (Date.now() - pointerDownTime.current < 200) {
+      if (occluded) return;
+      playSelectTone();
+      onClick();
+    }
   };
 
   return (
     <group position={position} ref={groupRef} visible={!occluded}>
       {/* Invisible hit target - much bigger for easy tapping */}
-      <mesh onClick={handleClick}>
+      <mesh onPointerDown={handlePointerDown} onPointerUp={handlePointerUp}>
         <sphereGeometry args={[isStation ? 0.05 : 0.03, 8, 8]} />
         <meshBasicMaterial visible={false} />
       </mesh>
