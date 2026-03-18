@@ -55,9 +55,9 @@ export default function Home() {
   const [nearbySatellites, setNearbySatellites] = useState<SatellitePosition[]>([]);
   const [orbitTrail, setOrbitTrail] = useState<OrbitPoint[]>([]);
   const [orbitColor, setOrbitColor] = useState("#4fc3f7");
-  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const [flyTarget, setFlyTarget] = useState<[number, number, number] | null>(null);
-  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(["Space Stations", "Brightest"]));
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(["Space Stations", "Brightest", "Active", "Starlink"]));
   const [searchQuery, setSearchQuery] = useState("");
   const [timeOffsetMs, setTimeOffsetMs] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -165,6 +165,13 @@ export default function Home() {
 
   useEffect(() => {
     requestLocation();
+    // Audio needs user gesture to start - resume on first interaction
+    const resumeAudio = () => {
+      enableAudio();
+      window.removeEventListener("pointerdown", resumeAudio);
+    };
+    window.addEventListener("pointerdown", resumeAudio);
+    return () => window.removeEventListener("pointerdown", resumeAudio);
   }, [requestLocation]);
 
   // Filter positions by active categories and search
