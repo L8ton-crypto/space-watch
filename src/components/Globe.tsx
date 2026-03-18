@@ -324,27 +324,40 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
-    // Visible line - renders in front, normal depth testing
+    // Bright glow line underneath for thickness
+    const glowGeo = geo.clone();
+    const glowMat = new THREE.LineBasicMaterial({
+      color: col,
+      transparent: true,
+      opacity: 0.4,
+      depthWrite: false,
+      linewidth: 2,
+    });
+    const glowLine = new THREE.Line(glowGeo, glowMat);
+    glowLine.renderOrder = 0;
+    groupRef.current.add(glowLine);
+
+    // Visible line - renders in front, bright and clear
     const frontMat = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.7,
+      opacity: 1.0,
       depthWrite: false,
     });
     const frontLine = new THREE.Line(geo, frontMat);
     frontLine.renderOrder = 1;
     groupRef.current.add(frontLine);
 
-    // Behind-Earth dashed line - shows the hidden part faintly
+    // Behind-Earth dashed line - visible enough to trace
     const backGeo = geo.clone();
     const backMat = new THREE.LineDashedMaterial({
       color: col,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.35,
       depthTest: false,
       depthWrite: false,
-      dashSize: 0.02,
-      gapSize: 0.02,
+      dashSize: 0.03,
+      gapSize: 0.015,
     });
     const backLine = new THREE.Line(backGeo, backMat);
     backLine.computeLineDistances();
@@ -354,6 +367,8 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
     return () => {
       geo.dispose();
       frontMat.dispose();
+      glowGeo.dispose();
+      glowMat.dispose();
       backGeo.dispose();
       backMat.dispose();
     };
