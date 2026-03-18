@@ -12,15 +12,27 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 function getSatIcon(name: string, category: string): string {
   const upper = name.toUpperCase();
-  if (upper.includes("ISS")) return "🚀";
-  if (upper.includes("TIANGONG") || upper.includes("CSS")) return "🏗️";
+  if (upper === "ISS (ZARYA)") return "🚀";
+  if (upper.includes("ISS OBJECT") || upper.includes("ISS DEB")) return "🗑️";
+  if (upper.startsWith("ISS") && !upper.includes("ISIS")) return "🚀";
+  if (upper.includes("TIANGONG") || upper.includes("CSS (")) return "🏗️";
+  if (upper.includes("TIANZHOU")) return "📦";
+  if (upper.includes("SHENZHOU")) return "🚀";
+  if (upper.includes("SOYUZ")) return "🚀";
+  if (upper.includes("PROGRESS")) return "📦";
+  if (upper.includes("CREW DRAGON")) return "🚀";
   if (upper.includes("HUBBLE") || upper.includes("HST")) return "🔭";
   if (upper.includes("JWST") || upper.includes("JAMES WEBB")) return "🔭";
+  if (upper.includes("XRISM") || upper.includes("HITOMI")) return "🔭";
   if (upper.includes("STARLINK")) return "📶";
-  if (upper.includes("GPS") || upper.includes("GALILEO") || upper.includes("BEIDOU")) return "🧭";
+  if (upper.includes("ONEWEB")) return "📶";
+  if (upper.includes("IRIDIUM")) return "📡";
+  if (upper.includes("GPS") || upper.includes("GALILEO") || upper.includes("BEIDOU") || upper.includes("GLONASS")) return "🧭";
   if (upper.includes("NOAA") || upper.includes("GOES") || upper.includes("METEO")) return "🌤️";
+  if (upper.includes("R/B")) return "🗑️";
+  if (upper.includes("DEB")) return "🗑️";
   const CATEGORY_ICONS: Record<string, string> = {
-    "Space Stations": "🏠",
+    "Space Stations": "🛰️",
     Brightest: "🛰️",
     Active: "📡",
     Starlink: "⭐",
