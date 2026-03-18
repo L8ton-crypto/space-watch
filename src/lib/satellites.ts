@@ -208,25 +208,24 @@ export function latLngToVector3(lat: number, lng: number, alt: number, earthRadi
 }
 
 export async function fetchTLEData(): Promise<SatelliteData[]> {
-  // Fetch space stations and bright objects for MVP
-  const sources = TLE_SOURCES; // all categories including Starlink
   const allSats: SatelliteData[] = [];
   const seen = new Set<string>();
 
-  for (const source of sources) {
-    try {
-      const res = await fetch(source.url);
-      if (!res.ok) continue;
-      const text = await res.text();
-      let sats = parseTLE(text, source.category);
+  try {
+    // Fetch via our API proxy to avoid CelesTrak CORS/403
+    const res = await fetch("/api/tle");
+    if (!res.ok) throw new Error(`API returned ${res.status}`);
+    const sources: { category: string; tle: string }[] = await res.json();
+
+    for (const source of sources) {
+      let sats = parseTLE(source.tle, source.category);
 
       // Cap Starlink to 200 to keep performance sane
-      // (full constellation is 6000+)
       if (source.category === "Starlink") {
         sats = sats.slice(0, 200);
       }
 
-      // Cap Active to 300 (it's a huge list)
+      // Cap Active to 300
       if (source.category === "Active") {
         sats = sats.slice(0, 300);
       }
@@ -237,9 +236,9 @@ export async function fetchTLEData(): Promise<SatelliteData[]> {
           allSats.push(sat);
         }
       }
-    } catch {
-      console.warn(`Failed to fetch ${source.category}`);
     }
+  } catch (err) {
+    console.error("Failed to fetch TLE data:", err);
   }
 
   return allSats;
