@@ -66,11 +66,7 @@ function Earth() {
     });
   }, [dayTexture, nightTexture, bumpMap]);
 
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += 0.0002;
-    }
-  });
+  // No rotation - satellites must stay aligned with geography
 
   return (
     <mesh ref={meshRef} material={shaderMaterial}>
@@ -110,6 +106,8 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 // --- Satellite sprite with icon ---
+// Occlusion: hide satellites behind the globe by checking if position
+// is on the far side relative to camera
 function SatelliteMarker({
   position,
   sat,
@@ -125,6 +123,8 @@ function SatelliteMarker({
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const [occluded, setOccluded] = useState(false);
   const color = CATEGORY_COLORS[sat.category] || "#4fc3f7";
   const isStation = sat.category === "Space Stations";
 
@@ -141,15 +141,41 @@ function SatelliteMarker({
       const opacity = 0.15 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
       (glowRef.current.material as THREE.MeshBasicMaterial).opacity = opacity;
     }
+
+    // Occlusion check: is this satellite behind the Earth from camera's perspective?
+    const cam = state.camera.position;
+    const satPos = new THREE.Vector3(...position);
+    const camToSat = satPos.clone().sub(cam);
+    const camToOrigin = new THREE.Vector3().sub(cam);
+
+    // Ray from camera to satellite - check if it intersects Earth sphere (r=1)
+    const rayDir = camToSat.clone().normalize();
+    const oc = cam.clone(); // origin to camera
+    const a = rayDir.dot(rayDir);
+    const b = 2 * oc.dot(rayDir);
+    const c = oc.dot(oc) - 1.0; // Earth radius = 1
+    const discriminant = b * b - 4 * a * c;
+
+    if (discriminant > 0) {
+      const t1 = (-b - Math.sqrt(discriminant)) / (2 * a);
+      const t2 = (-b + Math.sqrt(discriminant)) / (2 * a);
+      const tSat = camToSat.length();
+      // If Earth intersection is closer than satellite, it's occluded
+      const tMin = Math.min(t1, t2);
+      setOccluded(tMin > 0 && tMin < tSat);
+    } else {
+      setOccluded(false);
+    }
   });
 
   const handleClick = () => {
+    if (occluded) return;
     playSelectTone();
     onClick();
   };
 
   return (
-    <group position={position}>
+    <group position={position} ref={groupRef} visible={!occluded}>
       {/* Core dot */}
       <mesh ref={meshRef} onClick={handleClick}>
         <sphereGeometry args={[isStation ? 0.015 : 0.006, 8, 8]} />
@@ -163,7 +189,7 @@ function SatelliteMarker({
       </mesh>
 
       {/* Nearby pulse ring */}
-      {isNearby && (
+      {isNearby && !occluded && (
         <mesh>
           <ringGeometry args={[0.02, 0.025, 16]} />
           <meshBasicMaterial color="#ff9800" transparent opacity={0.4} side={THREE.DoubleSide} />
@@ -171,7 +197,7 @@ function SatelliteMarker({
       )}
 
       {/* Icon label for stations or selected */}
-      {(isStation || isSelected) && (
+      {(isStation || isSelected) && !occluded && (
         <Html distanceFactor={3} style={{ pointerEvents: "none" }}>
           <div style={{ fontSize: isStation ? 14 : 10, textAlign: "center", marginTop: -20 }}>
             {CATEGORY_ICONS[sat.category] || "🛰️"}
@@ -180,7 +206,7 @@ function SatelliteMarker({
       )}
 
       {/* Info popup for selected */}
-      {isSelected && (
+      {isSelected && !occluded && (
         <Html distanceFactor={3} style={{ pointerEvents: "none" }}>
           <div
             style={{
@@ -270,6 +296,7 @@ function ObserverMarker({ lat, lng }: { lat: number; lng: number }) {
   const pos = latLngToVector3(lat, lng, 0);
   const meshRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const [occluded, setOccluded] = useState(false);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -281,32 +308,55 @@ function ObserverMarker({ lat, lng }: { lat: number; lng: number }) {
       const scale = 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.2;
       ringRef.current.scale.setScalar(scale);
     }
+    // Occlusion: check if marker is on the far side
+    const cam = state.camera.position;
+    const markerPos = new THREE.Vector3(...pos);
+    const toMarker = markerPos.clone().sub(cam).normalize();
+    const toOrigin = new THREE.Vector3().sub(cam).normalize();
+    // Simple: if the dot product of camera-to-marker and camera-to-origin
+    // is high AND marker is further than Earth surface, it's behind
+    const camDist = cam.length();
+    const markerDist = markerPos.clone().sub(cam).length();
+    const originDist = cam.length();
+    // Use ray-sphere intersection
+    const rayDir = toMarker;
+    const oc = cam.clone();
+    const b = 2 * oc.dot(rayDir);
+    const c = oc.dot(oc) - 1.0;
+    const disc = b * b - 4 * c;
+    if (disc > 0) {
+      const t1 = (-b - Math.sqrt(disc)) / 2;
+      setOccluded(t1 > 0 && t1 < markerDist);
+    } else {
+      setOccluded(false);
+    }
   });
 
   return (
-    <group position={pos}>
+    <group position={pos} visible={!occluded}>
       <mesh ref={meshRef}>
         <sphereGeometry args={[0.01, 16, 16]} />
         <meshBasicMaterial color="#ff9800" />
       </mesh>
-      {/* Pulsing ring */}
       <mesh ref={ringRef}>
         <ringGeometry args={[0.018, 0.022, 24]} />
         <meshBasicMaterial color="#ff9800" transparent opacity={0.4} side={THREE.DoubleSide} />
       </mesh>
-      <Html distanceFactor={3} style={{ pointerEvents: "none" }}>
-        <div
-          style={{
-            color: "#ff9800",
-            fontSize: 10,
-            fontWeight: 700,
-            whiteSpace: "nowrap",
-            textShadow: "0 0 8px rgba(255, 152, 0, 0.5)",
-          }}
-        >
-          📍 YOU
-        </div>
-      </Html>
+      {!occluded && (
+        <Html distanceFactor={3} style={{ pointerEvents: "none" }}>
+          <div
+            style={{
+              color: "#ff9800",
+              fontSize: 10,
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+              textShadow: "0 0 8px rgba(255, 152, 0, 0.5)",
+            }}
+          >
+            📍 YOU
+          </div>
+        </Html>
+      )}
     </group>
   );
 }
