@@ -231,15 +231,17 @@ export default function Home() {
         flyTarget={flyTarget}
       />
 
-      {/* Navigation buttons */}
+      {/* Navigation buttons - centered above time scrubber */}
       <div
         style={{
           position: "absolute",
           bottom: 90,
-          left: 16,
+          left: "50%",
+          transform: "translateX(-50%)",
           display: "flex",
-          flexDirection: "column",
-          gap: 8,
+          flexDirection: "row",
+          gap: 10,
+          alignItems: "center",
           zIndex: 21,
         }}
       >
@@ -247,9 +249,9 @@ export default function Home() {
           <button
             onClick={flyToMe}
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: 46,
+              height: 46,
+              borderRadius: 23,
               border: "1px solid rgba(255, 152, 0, 0.3)",
               background: "rgba(10, 10, 15, 0.85)",
               backdropFilter: "blur(12px)",
@@ -260,6 +262,7 @@ export default function Home() {
               alignItems: "center",
               justifyContent: "center",
               transition: "all 0.2s",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
             }}
             title="Fly to my location"
           >
@@ -270,9 +273,9 @@ export default function Home() {
           <button
             onClick={flyToSelected}
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
+              width: 46,
+              height: 46,
+              borderRadius: 23,
               border: "1px solid rgba(79, 195, 247, 0.3)",
               background: "rgba(10, 10, 15, 0.85)",
               backdropFilter: "blur(12px)",
@@ -283,6 +286,7 @@ export default function Home() {
               alignItems: "center",
               justifyContent: "center",
               transition: "all 0.2s",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
             }}
             title="Fly to selected satellite"
           >

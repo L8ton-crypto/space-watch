@@ -458,7 +458,7 @@ export default function SidePanel({
             background: "rgba(10, 10, 15, 0.85)",
             backdropFilter: "blur(20px)",
             borderBottom: "1px solid rgba(30, 30, 46, 0.6)",
-            zIndex: 25,
+            zIndex: 40,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -509,7 +509,7 @@ export default function SidePanel({
               position: "fixed",
               inset: 0,
               background: "rgba(0, 0, 0, 0.5)",
-              zIndex: 29,
+              zIndex: 49,
             }}
           />
         )}
@@ -526,7 +526,7 @@ export default function SidePanel({
             background: "rgba(10, 10, 15, 0.95)",
             backdropFilter: "blur(20px)",
             borderRight: "1px solid rgba(30, 30, 46, 0.6)",
-            zIndex: 30,
+            zIndex: 50,
             display: "flex",
             flexDirection: "column",
             transform: menuOpen ? "translateX(0)" : "translateX(-100%)",
@@ -593,3 +593,4 @@ export default function SidePanel({
     </div>
   );
 }
+
