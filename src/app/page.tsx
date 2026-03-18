@@ -169,6 +169,8 @@ export default function Home() {
 
   // Filter positions by active categories and search
   const filteredPositions = positions.filter((p) => {
+    // Always show the selected satellite regardless of filters
+    if (selectedId && p.id === selectedId) return true;
     if (!activeCategories.has(p.category)) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -179,6 +181,11 @@ export default function Home() {
     }
     return true;
   });
+
+  // Filter nearby satellites by active categories too
+  const filteredNearby = nearbySatellites.filter(
+    (p) => activeCategories.has(p.category)
+  );
 
   const toggleCategory = useCallback((cat: string) => {
     setActiveCategories((prev) => {
@@ -221,7 +228,7 @@ export default function Home() {
     <main style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }}>
       <Globe
         satellites={filteredPositions}
-        nearbySatellites={nearbySatellites}
+        nearbySatellites={filteredNearby}
         selectedId={selectedId}
         onSelect={setSelectedId}
         observerLat={observerLat}
@@ -302,7 +309,7 @@ export default function Home() {
 
       <SidePanel
         satellites={filteredPositions}
-        nearbySatellites={nearbySatellites}
+        nearbySatellites={filteredNearby}
         selectedId={selectedId}
         onSelect={setSelectedId}
         totalCount={filteredPositions.length}
@@ -320,3 +327,4 @@ export default function Home() {
     </main>
   );
 }
+
