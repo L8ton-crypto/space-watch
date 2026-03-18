@@ -235,12 +235,12 @@ export default function Home() {
       <div
         style={{
           position: "absolute",
-          bottom: 24,
+          bottom: 90,
           left: 16,
           display: "flex",
           flexDirection: "column",
           gap: 8,
-          zIndex: 15,
+          zIndex: 21,
         }}
       >
         {observerLat !== null && (
