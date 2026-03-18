@@ -283,7 +283,7 @@ function SatelliteMarker({
   );
 }
 
-// --- Orbit trail line ---
+// --- Orbit trail using TubeGeometry for visible thickness ---
 function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -297,76 +297,53 @@ function OrbitTrail({ points, color }: { points: OrbitPoint[]; color: string }) 
     }
 
     const col = new THREE.Color(color);
-    const earthRadius = 1.0;
 
-    // Split trail into segments: front (visible) rendered with depth test,
-    // back rendered as dashed/dim. For simplicity, render all with depthWrite false
-    // and two passes: solid line on top layer, dim line behind.
+    // Build a curve from the orbit points
+    const curvePoints = points.map(
+      (p) => new THREE.Vector3(p.position[0], p.position[1], p.position[2])
+    );
+    const curve = new THREE.CatmullRomCurve3(curvePoints, false);
 
-    // Front pass: rendered on top of Earth
-    const geo = new THREE.BufferGeometry();
-    const positions = new Float32Array(points.length * 3);
-    const colors = new Float32Array(points.length * 3);
-
-    for (let i = 0; i < points.length; i++) {
-      const [x, y, z] = points[i].position;
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
-
-      // Fade: brighter at start (current position), fades along the orbit
-      const fade = 0.3 + 0.7 * (i / points.length);
-      colors[i * 3] = col.r * fade;
-      colors[i * 3 + 1] = col.g * fade;
-      colors[i * 3 + 2] = col.b * fade;
-    }
-
-    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-
-    // Bright glow line underneath for thickness
-    const glowGeo = geo.clone();
-    const glowMat = new THREE.LineBasicMaterial({
+    // Front tube - visible, thick, with depth test
+    const tubeGeo = new THREE.TubeGeometry(curve, points.length, 0.006, 6, false);
+    const tubeMat = new THREE.MeshBasicMaterial({
       color: col,
       transparent: true,
-      opacity: 0.4,
-      depthWrite: false,
-      linewidth: 2,
-    });
-    const glowLine = new THREE.Line(glowGeo, glowMat);
-    glowLine.renderOrder = 0;
-    groupRef.current.add(glowLine);
-
-    // Visible line - renders in front, bright and clear
-    const frontMat = new THREE.LineBasicMaterial({
-      vertexColors: true,
-      transparent: true,
-      opacity: 1.0,
+      opacity: 0.85,
       depthWrite: false,
     });
-    const frontLine = new THREE.Line(geo, frontMat);
-    frontLine.renderOrder = 1;
-    groupRef.current.add(frontLine);
+    const tubeMesh = new THREE.Mesh(tubeGeo, tubeMat);
+    tubeMesh.renderOrder = 1;
+    groupRef.current.add(tubeMesh);
 
-    // Behind-Earth dashed line - visible enough to trace
-    const backGeo = geo.clone();
-    const backMat = new THREE.LineDashedMaterial({
+    // Outer glow tube - slightly larger, more transparent
+    const glowGeo = new THREE.TubeGeometry(curve, points.length, 0.012, 6, false);
+    const glowMat = new THREE.MeshBasicMaterial({
       color: col,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.2,
+      depthWrite: false,
+    });
+    const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+    glowMesh.renderOrder = 0;
+    groupRef.current.add(glowMesh);
+
+    // Behind-Earth tube - no depth test, dim
+    const backGeo = new THREE.TubeGeometry(curve, points.length, 0.004, 4, false);
+    const backMat = new THREE.MeshBasicMaterial({
+      color: col,
+      transparent: true,
+      opacity: 0.15,
       depthTest: false,
       depthWrite: false,
-      dashSize: 0.03,
-      gapSize: 0.015,
     });
-    const backLine = new THREE.Line(backGeo, backMat);
-    backLine.computeLineDistances();
-    backLine.renderOrder = -1;
-    groupRef.current.add(backLine);
+    const backMesh = new THREE.Mesh(backGeo, backMat);
+    backMesh.renderOrder = -1;
+    groupRef.current.add(backMesh);
 
     return () => {
-      geo.dispose();
-      frontMat.dispose();
+      tubeGeo.dispose();
+      tubeMat.dispose();
       glowGeo.dispose();
       glowMat.dispose();
       backGeo.dispose();
